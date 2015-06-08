@@ -1,0 +1,118 @@
+<project basedir="." default="fulltest">
+
+        <!-- This file contains all of the environment specific configuration, change it for your setup -->
+    <property file="local.properties"/>
+	<property name="lib" value="lib" /> 
+    
+  <!--  <path id="classpath">
+        <fileset dir="${lib.dir}" includes="/*.jar"/>
+    </path>
+  -->
+ 
+        <taskdef name="accessUrlTask" classname="org.zaproxy.clientapi.ant.AccessUrlTask" classpath="${lib}/zap-api-2.4-v1.jar" />
+        <taskdef name="activeScanUrlTask" classname="org.zaproxy.clientapi.ant.ActiveScanUrlTask" classpath="${lib}/zap-api-2.4-v1.jar" />
+        <taskdef name="activeScanSubtreeTask" classname="org.zaproxy.clientapi.ant.ActiveScanSubtreeTask" classpath="${lib}/zap-api-2.4-v1.jar" />
+        <taskdef name="alertCheckTask" classname="org.zaproxy.clientapi.ant.AlertCheckTask" classpath="${lib}/zap-api-2.4-v1.jar" />
+        <taskdef name="loadSessionTask" classname="org.zaproxy.clientapi.ant.LoadSessionTask" classpath="${lib}/zap-api-2.4-v1.jar" />
+        <taskdef name="newSessionTask" classname="org.zaproxy.clientapi.ant.NewSessionTask" classpath="${lib}/zap-api-2.4-v1.jar" />
+        <taskdef name="saveSessionTask" classname="org.zaproxy.clientapi.ant.SaveSessionTask" classpath="${lib}/zap-api-2.4-v1.jar" />
+        <taskdef name="spiderUrlTask" classname="org.zaproxy.clientapi.ant.SpiderUrlTask" classpath="${lib}/zap-api-2.4-v1.jar" />
+        <taskdef name="stopZapTask" classname="org.zaproxy.clientapi.ant.StopZapTask" classpath="${lib}/zap-api-2.4-v1.jar" />
+        <taskdef name="alert" classname="org.zaproxy.clientapi.ant.AlertTask" classpath="${lib}/zap-api-2.4-v1.jar" />
+        
+        <target name="startZap">
+                <java classname="org.zaproxy.zap.ZAP" fork="true" spawn="true" dir="${zap.dir}">
+                        <classpath>
+                                <pathelement location="${zap.dir}/zap.jar"/>
+                        </classpath>
+                </java>
+                <!-- Give ZAP a chance to start -->
+                <sleep seconds="30"/>
+        </target>
+
+        <target name="startZapDaemon">
+                <java classname="org.zaproxy.zap.ZAP" fork="true" spawn="true" dir="${zap.dir}">
+                        <arg value="-daemon"/>
+                        <arg value="-port"/>
+                        <arg value="${zap.port}"/>
+                        <classpath>
+                                <pathelement location="${zap.dir}/zap-dev.jar"/>
+                        </classpath>
+                </java>
+                <!-- Give ZAP a chance to start -->
+                <sleep seconds="10"/>
+        </target>
+
+        <target name="funcTest">
+<!--                <exec executable="/bin/bash">
+                        <arg value="web-test/mocha-test.sh"/>
+                </exec> -->
+                <exec executable="mocha"  failonerror="true">
+                        <arg value="web-test/test" />
+                    </exec>
+        </target>
+    
+        <target name="stopZap">
+            <stopZapTask zapAddress="${zap.addr}" zapPort="${zap.port}" debug="true"/>
+        </target>
+
+        <target name="spider">
+            <spiderUrlTask zapAddress="${zap.addr}" zapPort="${zap.port}" url="${zap.targetApp}" debug="true"/>
+        </target>
+
+        <target name="activescan">
+            <activeScanSubtreeTask zapAddress="${zap.addr}" zapPort="${zap.port}" url="${zap.targetApp}" debug="true"/>
+        </target>
+        
+        <target name="savesession">
+            <saveSessionTask zapAddress="${zap.addr}" zapPort="${zap.port}" name="${user.dir}/${zap.session}" debug="true"/>
+        </target>
+
+        <target name="alertcheck">
+            <alertCheckTask zapAddress="${zap.addr}" zapPort="${zap.port}" debug="true">
+                <!--
+                        The alertCheckTask will fail if any alerts are reported..
+                        ignoreAlert alerts are ignored if reported
+                        requireAlerts will fail if not present
+                        Missing elements match everything, so:
+                                <ignoreAlert risk="Low" reliability="Warning"/>
+                            will ignore all alerts with a Low risk and Warning reliability
+                            The url, param and other fields are all regexs 
+                
+                
+                <ignoreAlert alert="X-Content-Type-Options header missing" risk="Low" reliability="Warning"/> 
+                <ignoreAlert alert="Cookie set without HttpOnly flag" risk="Low" reliability="Warning"/>
+                <ignoreAlert alert="X-Frame-Options header not set" risk="Informational" reliability="Warning"/> -->
+            </alertCheckTask>
+        </target>
+    
+       <!-- <target name="createreport">
+            <createHTMLReport zapAddress="${zap.addr}" zapPort="${zap.port}" name="${file.location}" debug="true"/>
+        </target> -->
+    
+        <target name="createreport">   
+            <get src="http://${zap.addr}:${zap.port}/OTHER/core/other/htmlreport/" dest="${file.location}"/>
+        </target>
+    
+        <target name="fulltest">
+                
+                <!-- Start ZAP -->
+                <antcall target="startZapDaemon" />
+                
+                <antcall target="funcTest" />
+                <sleep seconds="10"/>
+            
+                <antcall target="spider" />
+                <sleep seconds="10"/>
+            
+               <!-- <antcall target="activescan" />
+                <sleep seconds="75"/> -->
+            
+                <antcall target="createreport" />
+
+                <stopZapTask zapAddress="${zap.addr}" zapPort="${zap.port}"/>
+            
+        </target>
+
+        
+</project>

@@ -1,0 +1,12 @@
+{
+	"name": "MarsAirTests",
+    "version": "0.0.1",
+    "dependencies": {
+        "selenium-webdriver": "latest",
+        "colors":"latest",
+        "mocha":"latest"
+    },
+    "scripts": {
+      "test": ""
+    }
+}
